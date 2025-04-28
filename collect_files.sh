@@ -41,9 +41,12 @@ if [[ ! -d "$input_dir" ]]; then
     exit 1
 fi
 
+# Clean output directory
+rm -rf "$output_dir"
 mkdir -p "$output_dir"
 
-copy_with_unique_name() {
+# Function to copy files with unique names
+copy_file() {
     local src=$1
     local dest_dir=$2
     local base_name=$(basename "$src")
@@ -54,40 +57,4 @@ copy_with_unique_name() {
         local name="${base_name%.*}"
         local extension="${base_name##*.}"
         
-        if [[ "$name" == "$extension" ]]; then
-            dest_path="$dest_dir/${name}_$counter"
-        else
-            dest_path="$dest_dir/${name}_$counter.$extension"
-        fi
-        
-        ((counter++))
-    done
-
-    cp "$src" "$dest_path"
-}
-
-process_directory() {
-    local current_dir=$1
-    local current_depth=$2
-    local target_dir=$3
-
-    if [[ "$max_depth" -ne -1 ]] && [[ "$current_depth" -gt "$max_depth" ]]; then
-        return
-    fi
-
-    for item in "$current_dir"/*; do
-        if [[ -f "$item" ]]; then
-            copy_with_unique_name "$item" "$target_dir"
-        elif [[ -d "$item" ]]; then
-            local new_dir="$target_dir/$(basename "$item")"
-            mkdir -p "$new_dir"
-            process_directory "$item" $((current_depth + 1)) "$new_dir"
-        fi
-    done
-}
-
-# Clean output directory if it exists
-rm -rf "$output_dir"/*
-process_directory "$input_dir" 0 "$output_dir"
-
-echo "Files collected successfully to $output_dir"
+       
