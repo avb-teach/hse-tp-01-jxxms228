@@ -1,14 +1,11 @@
 #!/bin/bash
 
-if [ "$#" -lt 2 ] || [ "$#" -gt 4 ]; then
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
     echo "Usage: $0 [--max_depth N] <input_dir> <output_dir>"
     exit 1
 fi
 
 max_depth=-1
-input_dir=""
-output_dir=""
-
 if [ "$1" == "--max_depth" ]; then
     if [ "$#" -ne 4 ]; then
         echo "Usage: $0 [--max_depth N] <input_dir> <output_dir>"
@@ -18,10 +15,6 @@ if [ "$1" == "--max_depth" ]; then
     input_dir=$3
     output_dir=$4
 else
-    if [ "$#" -ne 2 ]; then
-        echo "Usage: $0 [--max_depth N] <input_dir> <output_dir>"
-        exit 1
-    fi
     input_dir=$1
     output_dir=$2
 fi
