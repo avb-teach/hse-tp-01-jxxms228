@@ -1,58 +1,74 @@
 #!/bin/bash
 
-if [[ $# -lt 2 ]]; then
-    echo "Usage: $0 [--max_depth N] input_dir output_dir"
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+    echo "Usage: $0 [--max_depth N] <input_dir> <output_dir>"
     exit 1
 fi
 
-MAX_DEPTH=""
-INPUT_DIR=""
-OUTPUT_DIR=""
-
-if [[ "$1" == "--max_depth" ]]; then
-    MAX_DEPTH="$2"
-    INPUT_DIR="$3"
-    OUTPUT_DIR="$4"
-    if [[ -z "$MAX_DEPTH"  -z "$INPUT_DIR"  -z "$OUTPUT_DIR" ]]; then
-        echo "Usage: $0 [--max_depth N] input_dir output_dir"
+max_depth=-1
+if [ "$1" == "--max_depth" ]; then
+    if [ "$#" -ne 4 ]; then
+        echo "Usage: $0 [--max_depth N] <input_dir> <output_dir>"
         exit 1
     fi
+    max_depth=$2
+    input_dir=$3
+    output_dir=$4
 else
-    INPUT_DIR="$1"
-    OUTPUT_DIR="$2"
+    input_dir=$1
+    output_dir=$2
 fi
 
-if [[ ! -d "$INPUT_DIR" ]]; then
+if [ ! -d "$input_dir" ]; then
     echo "Error: Input directory does not exist"
     exit 1
 fi
 
-if [[ ! -d "$OUTPUT_DIR" ]]; then
-    echo "Error: Output directory does not exist"
-    exit 1
-fi
+mkdir -p "$output_dir"
 
-declare -A file_count
+copy_with_unique_name() {
+    local src=$1
+    local dest_dir=$2
+    local base_name=$(basename "$src")
+    local dest_path="$dest_dir/$base_name"
+    local counter=1
 
-FIND_CMD="find \"$INPUT_DIR\" -type f"
-if [[ -n "$MAX_DEPTH" ]]; then
-    FIND_CMD="find \"$INPUT_DIR\" -maxdepth $MAX_DEPTH -type f"
-fi
+    while [ -e "$dest_path" ]; do
+        local name="${base_name%.*}"
+        local extension="${base_name##*.}"
+        
+        if [ "$name" == "$extension" ]; then
+            dest_path="$dest_dir/${name}_$counter"
+        else
+            dest_path="$dest_dir/${name}_$counter.$extension"
+        fi
+        
+        ((counter++))
+    done
 
-eval $FIND_CMD | while read -r filepath; do
-    filename=$(basename "$filepath")
-    
-    if [[ -e "$OUTPUT_DIR/$filename" || ${file_count[$filename]+_} ]]; then
-        count=${file_count[$filename]:-1}
-        new_filename="${filename%.*}$count.${filename##*.}"
-        while [[ -e "$OUTPUT_DIR/$new_filename" ]]; do
-            ((count++))
-            new_filename="${filename%.*}$count.${filename##*.}"
-        done
-        cp "$filepath" "$OUTPUT_DIR/$new_filename"
-        file_count[$filename]=$((count+1))
-    else
-        cp "$filepath" "$OUTPUT_DIR/$filename"
-        file_count[$filename]=1
+    cp "$src" "$dest_path"
+}
+
+process_directory() {
+    local current_dir=$1
+    local current_depth=$2
+    local target_dir=$3
+
+    if [ "$max_depth" -ne -1 ] && [ "$current_depth" -gt "$max_depth" ]; then
+        return
     fi
-done
+
+    for item in "$current_dir"/*; do
+        if [ -f "$item" ]; then
+            if [ "$max_depth" -eq -1 ] || [ "$current_depth" -le "$max_depth" ]; then
+                copy_with_unique_name "$item" "$target_dir"
+            fi
+        elif [ -d "$item" ]; then
+            process_directory "$item" $((current_depth + 1)) "$target_dir"
+        fi
+    done
+}
+
+process_directory "$input_dir" 0 "$output_dir"
+
+echo "Files collected successfully to $output_dir"
