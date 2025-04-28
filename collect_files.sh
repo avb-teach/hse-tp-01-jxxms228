@@ -41,12 +41,9 @@ if [[ ! -d "$input_dir" ]]; then
     exit 1
 fi
 
-# Clean output directory
-rm -rf "$output_dir"
 mkdir -p "$output_dir"
 
-# Function to copy files with unique names
-copy_file() {
+copy_with_unique_name() {
     local src=$1
     local dest_dir=$2
     local base_name=$(basename "$src")
@@ -57,4 +54,41 @@ copy_file() {
         local name="${base_name%.*}"
         local extension="${base_name##*.}"
         
+        if [[ "$name" == "$extension" ]]; then
+            dest_path="$dest_dir/${name}_$counter"
+        else
+            dest_path="$dest_dir/${name}_$counter.$extension"
+        fi
+        
+        ((counter++))
+    done
+
+    cp "$src" "$dest_path"
+}
+
+process_directory() {
+    local current_dir=$1
+    local current_depth=$2
+    local target_dir=$3
+
+    mkdir -p "$target_dir"
+
+    for item in "$current_dir"/*; do
+        if [[ -f "$item" ]]; then
+            copy_with_unique_name "$item" "$target_dir"
+        elif [[ -d "$item" ]]; then
+            if [[ "$max_depth" -eq -1 || "$current_depth" -lt "$max_depth" ]]; then
+                local subdir_name=$(basename "$item")
+                process_directory "$item" $((current_depth + 1)) "$target_dir/$subdir_name"
+            else
+                # На глубине max_depth: копируем файлы из более глубоких директорий сюда
+                process_directory "$item" $((current_depth + 1)) "$target_dir"
+            fi
+        fi
+    done
+}
+
+process_directory "$input_dir" 0 "$output_dir"
+
+echo "Files collected successfully to $output_dir"
        
