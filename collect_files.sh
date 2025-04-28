@@ -6,25 +6,37 @@ if [ "$#" -lt 2 ] || [ "$#" -gt 4 ]; then
 fi
 
 max_depth=-1
-if [ "$1" == "--max_depth" ]; then
-    if [ "$#" -ne 4 ]; then
-        echo "Usage: $0 [--max_depth N] <input_dir> <output_dir>"
-        exit 1
-    fi
-    if ! [[ "$2" =~ ^[0-9]+$ ]]; then
-        echo "Error: N must be a positive integer"
-        exit 1
-    fi
-    max_depth=$2
-    input_dir=$3
-    output_dir=$4
-else
-    if [ "$#" -ne 2 ]; then
-        echo "Usage: $0 [--max_depth N] <input_dir> <output_dir>"
-        exit 1
-    fi
-    input_dir=$1
-    output_dir=$2
+input_dir=""
+output_dir=""
+
+# Parse arguments
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --max_depth)
+            if [ -z "$2" ] || ! [[ "$2" =~ ^[0-9]+$ ]]; then
+                echo "Error: N must be a positive integer"
+                exit 1
+            fi
+            max_depth="$2"
+            shift 2
+            ;;
+        *)
+            if [ -z "$input_dir" ]; then
+                input_dir="$1"
+            elif [ -z "$output_dir" ]; then
+                output_dir="$1"
+            else
+                echo "Error: Too many arguments"
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [ -z "$input_dir" ] || [ -z "$output_dir" ]; then
+    echo "Usage: $0 [--max_depth N] <input_dir> <output_dir>"
+    exit 1
 fi
 
 if [ ! -d "$input_dir" ]; then
