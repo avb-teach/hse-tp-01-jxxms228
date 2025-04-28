@@ -79,11 +79,15 @@ process_directory() {
         if [[ -f "$item" ]]; then
             copy_with_unique_name "$item" "$target_dir"
         elif [[ -d "$item" ]]; then
-            process_directory "$item" $((current_depth + 1)) "$target_dir"
+            local new_dir="$target_dir/$(basename "$item")"
+            mkdir -p "$new_dir"
+            process_directory "$item" $((current_depth + 1)) "$new_dir"
         fi
     done
 }
 
+# Clean output directory if it exists
+rm -rf "$output_dir"/*
 process_directory "$input_dir" 0 "$output_dir"
 
 echo "Files collected successfully to $output_dir"
